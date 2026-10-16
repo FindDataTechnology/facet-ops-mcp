@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 import pytest
 from fastmcp import Client, FastMCP
 
@@ -69,6 +71,32 @@ async def test_publish_thin_forward_and_packid(bearer):
     call = fake.calls[0]
     assert call["method"] == "POST" and call["path"] == "/api/packs"
     assert call["json_body"] == {"manifest": manifest, "packId": "x1"}  # 薄转发不改写
+
+
+async def test_validate_thin_forward_both_shapes(bearer):
+    """creator-pack-forge-support：dry-run 薄转发，信封原样（含 caller）。"""
+    manifest = {"name": "眼见包"}
+    envelope = {
+        "valid": False,
+        "errors": [{"error": "Invalid manifest", "errors": [{"error": "x"}]}],
+        "caller": {"publishEligible": False, "reason": "Creator group required"},
+    }
+    fake = FakeClient(result=envelope)
+    mcp = await _mk(fake)
+    async with Client(mcp) as c:
+        # 新包（无 packId）与续版（带 packId）两种形状都薄转发不改写。
+        out1 = await c.call_tool("facet_market_pack_validate", {"manifest": manifest})
+        out2 = await c.call_tool(
+            "facet_market_pack_validate", {"manifest": manifest, "packId": "x1"}
+        )
+    assert fake.calls[0]["method"] == "POST"
+    assert fake.calls[0]["path"] == "/api/packs/validate"
+    assert fake.calls[0]["json_body"] == {"manifest": manifest}  # 无 packId 不入体
+    assert fake.calls[1]["json_body"] == {"manifest": manifest, "packId": "x1"}
+    # 判词原样透传：caller finding 与 errors 都要到得了调用方（工具层不重组合）。
+    dumped = json.dumps(out1, default=str)
+    assert "publishEligible" in dumped and "Creator group required" in dumped
+    assert "Invalid manifest" in dumped
 
 
 async def test_visibility_and_curation_writes(bearer):

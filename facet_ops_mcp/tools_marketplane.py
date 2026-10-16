@@ -1,7 +1,10 @@
-"""市场面六工具（facet_market_*）：薄包 facet 市场 /api/packs*。
+"""市场面七工具（facet_market_*）：薄包 facet 市场 /api/packs*。
 
 Bearer 从进站 MCP 请求取（get_http_request 原始头，同 tools_market 的坑）；
 凭据=市场平台 app token（壹座 facet-market ref 注入——设备密钥静默续登铸造）。
+
+七工具 = 六读写 + 一 dry-run（facet_market_pack_validate，creator-pack-forge-support
+线上契约：与 publish 同门同判词、零副作用、独立限流桶）。
 """
 
 from __future__ import annotations
@@ -76,13 +79,40 @@ def register(mcp: FastMCP, client: RegistryClient) -> None:
         =壹座 lib/pack-manifest.js 校验器与《创作与发布功能集》指南）。首次发布
         省略 packId（铸新 id）；发新版本传 packId（仅作者）。需要 creators 组
         （403 如实透传）；声明了工具名的 manifest 会过工具声明门（对不上 400）；
-        仅通过校验的发布计入配额。建议先 facet_market_pack_browse 查重。
+        仅通过校验的发布计入配额。建议先 facet_market_pack_browse 查重、
+        facet_market_pack_validate 预校验（同门判词、一次给全）后再发布。
         """
         body: dict[str, Any] = {"manifest": manifest}
         if packId:
             body["packId"] = packId
         result = await client.request("POST", "/api/packs", bearer=_current_bearer(), json_body=body)
         return {"published": True, "result": result}
+
+    @mcp.tool
+    async def facet_market_pack_validate(
+        manifest: dict[str, Any], packId: str | None = None
+    ) -> dict[str, Any]:
+        """发布前预校验（POST /api/packs/validate）——dry-run，不发布。
+
+        与 facet_market_pack_publish 同形入参（manifest + 可选 packId），跑**同一套**
+        发布门（结构限额/files 门/工具声明门）但只回判词、零副作用：不铸 id 或版本、
+        不落库、不消耗发布配额（有独立限流桶，超限 429）。
+
+        返回信封（恒 200，除匿名 401）：
+          {"valid": bool, "errors": [...], "caller": {"publishEligible": bool, "reason"?: str}}
+        errors 为全量收集（publish 早退，validate 一次给全）；每项即 publish 对应
+        拒绝响应的完整体——含 `code`（如 pack-files-disabled）与 `toolGate: true`
+        标记，措辞逐字保留，**原样转述给用户，不要改写**。
+        caller.publishEligible=false 时**必须同时呈现**（reason 原文
+        "Creator group required"）——否则用户会把 valid:true 误读成"可以发布了"。
+        建议流程：先 browse 查重 → validate 至 valid:true → 再 publish。
+        """
+        body: dict[str, Any] = {"manifest": manifest}
+        if packId:
+            body["packId"] = packId
+        return await client.request(
+            "POST", "/api/packs/validate", bearer=_current_bearer(), json_body=body
+        )
 
     @mcp.tool
     async def facet_market_pack_visibility(id: str, visibility: str) -> dict[str, Any]:
