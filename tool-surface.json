@@ -8,8 +8,14 @@
   ],
   "description": "谦面（facet 线）网关操作 MCP：浏览网关 AgentCard 目录、读详情、登记/更新/启停、登记前查重。逐调用以用户 registry 凭据委托执行。",
   "skills_eligible_for_packs": [
-    "facet-market-ops",
-    "facet-agent-ops"
+    "facet-market-publishing",
+    "facet-gateway-ops",
+    "facet-browse-guidance",
+    "facet-validate-guidance",
+    "facet-concepts",
+    "facet-recommend",
+    "facet-permissions",
+    "facet-install-guidance"
   ],
   "naming_convention": {
     "order": "verb_noun",
