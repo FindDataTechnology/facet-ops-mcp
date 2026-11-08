@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from facet_ops_mcp.auth_gate import AuthGate
+from facet_ops_mcp.auth_gate import _CACHE_MAX, AuthGate
 from facet_ops_mcp.client import RegistryClient, RegistryError
 
 
@@ -46,3 +46,12 @@ async def test_cache_short_circuits():
     await gate.check("tok")
     await gate.check("tok")
     assert c.calls == 1  # 第二次走缓存
+
+
+async def test_cache_is_bounded():
+    # 兜底：新 token 都要打一次上游探针，缓存无界会同时放大上游并泄漏 RSS
+    c = ExplodingClient()
+    gate = AuthGate(c, ttl_seconds=60)
+    for i in range(_CACHE_MAX * 4):
+        await gate.check(f"tok-{i}")
+    assert len(gate._cache) <= _CACHE_MAX

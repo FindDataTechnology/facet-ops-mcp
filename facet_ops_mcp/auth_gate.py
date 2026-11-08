@@ -19,6 +19,11 @@ import time
 
 from .client import RegistryClient, RegistryError
 
+# 每个新 token 都要打一次上游探针（1:1 放大面），所以缓存必须有上界：到界整体清空，
+# 只兜住内存（清空后旧 token 会重探，探针不再有长期记忆）。本改动不改变探针语义，
+# 也**不**对上游请求限速——那是另一件事。
+_CACHE_MAX = 1024
+
 
 class AuthGate:
     def __init__(
@@ -55,6 +60,8 @@ class AuthGate:
             if e.kind == "unauthorized":
                 ok = False  # 上游判定凭据失效 → 401
             # unreachable/其他 → 放行（工具层诚实报错）
+        if len(self._cache) >= _CACHE_MAX:
+            self._cache.clear()  # 有界：任意 bearer 都能写一条，无界即 RSS 泄漏面
         self._cache[key] = (now, ok)
         return ok
 
