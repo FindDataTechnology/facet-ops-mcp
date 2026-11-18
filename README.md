@@ -1,5 +1,7 @@
 # facet-ops-mcp — 谦面操作 MCP（双面）
 
+> **Part of the [Facet line (寻数·谦面)](https://www.finddatatech.cloud/products/facet) of [FindData](https://www.finddatatech.cloud)** — AI operation surface for the facet registry and pack marketplace: browse and publish packs, manage agent-card catalogue entries.
+
 同一镜像两个 deployment（`FACET_OPS_FACE` 切脸）：
 
 | 脸 | 服务 | 上游面 | 凭据（壹座 ref） |
