@@ -7,11 +7,11 @@ name = "facet-ops-mcp"
 version = "0.1.0"
 description = "谦面（facet 线）市场操作 MCP：目录/详情/发布/更新/上下架/查重，逐调用以用户身份委托执行。"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 license = "MIT"
 authors = [{ name = "FindDataTechnology" }]
 dependencies = [
-    "fastmcp>=2.0",
+    "fastmcp>=4.2.4,<5",
     "click",
     "uvicorn",
     "httpx",
